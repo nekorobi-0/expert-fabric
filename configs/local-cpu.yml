@@ -1,0 +1,12 @@
+# Runnable CPU PoC. No RDMA, GPU or second socket is required.
+profiling:
+  prometheus:
+    enabled: true
+    listen: "127.0.0.1:9464"
+  per_expert_counters: true
+
+expert_engines:
+  - id: cpu-experts
+    transport: local
+    target_kind: cpu
+    capacity_bytes: 67108864

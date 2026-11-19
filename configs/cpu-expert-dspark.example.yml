@@ -1,0 +1,61 @@
+# 比較する構成はこの1行で選ぶ。
+active_profile: dspark_upi_gpu
+
+# 全プロファイルでターゲット実行とCPU expertの配置を共通にする。
+main:
+  numa_node: 0
+  optimization:
+    hip_streams: 2          # 1にすると計算とコピーを同じストリームで比較できる。
+    gpu_routing: true      # top-k、送信パック、出力集約。
+    hip_graph: false
+    prefill_chunk_tokens: auto  # 固定値でも比較できる設計。
+
+speculation:
+  limit_by_expert_queue: true
+  dspark_storage:
+    weights_path: /mnt/local-ssd/models/dspark
+    long_context:
+      suspend_at_tokens: 32768  # 検証用の例。実測して調整する。
+      unload_when_idle: true
+  ngram:
+    enabled: false          # trueでDSpark停止時のn-gram先読みを試す。
+    gate_by_measured_gain: true
+    min_match_tokens: 2
+    max_match_tokens: 5
+    max_draft_tokens: 4
+    cache:
+      reuse_recent_requests: false
+      max_ram_mib: 64       # 比較用の例。使用条件に合わせて調整する。
+
+profiling:
+  prometheus:
+    enabled: true
+    listen: "127.0.0.1:9464"
+  gpu_timing: false
+  per_expert_counters: false
+
+expert_engines:
+  - id: cpu-experts
+    transport: upi
+    numa_node: 1
+    target_kind: cpu
+    cpu_workers: auto      # 物理コアを基準に選び、固定値でも測る。
+
+# GPU番号とNUMAノード番号は実機に合わせて変更する。
+profiles:
+  cpu_expert_baseline:
+    dspark:
+      enabled: false
+
+  dspark_local_gpu:
+    dspark:
+      enabled: true
+      transport: local
+      gpu_device: 0
+
+  dspark_upi_gpu:
+    dspark:
+      enabled: true
+      transport: upi
+      numa_node: 1
+      gpu_device: 1
